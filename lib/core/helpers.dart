@@ -11,7 +11,7 @@ Color statusColor(String status) {
     case 'Cancelled':
       return AppColors.danger;
     default:
-      return AppColors.amber; // Pending
+      return const Color(0xFFFFA726); // Pending (amber-orange)
   }
 }
 

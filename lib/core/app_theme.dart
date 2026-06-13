@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-/// Central color palette.
+/// Central color palette — classic taxi (black + yellow).
 class AppColors {
-  static const bg = Color(0xFF0B0E13);
-  static const bgSoft = Color(0xFF11151C);
-  static const card = Color(0xFF161B24);
-  static const cardHi = Color(0xFF1E2530);
-  static const accent = Color(0xFF35E0A1); // signature green
-  static const accent2 = Color(0xFF18B8FF); // electric blue
-  static const accentDark = Color(0xFF0E9F6E);
-  static const text = Color(0xFFF3F6F9);
-  static const subtext = Color(0xFF8A94A6);
+  static const bg = Color(0xFF0C0C0E);
+  static const bgSoft = Color(0xFF141416);
+  static const card = Color(0xFF1A1A1D);
+  static const cardHi = Color(0xFF232327);
+  static const accent = Color(0xFFFFC400); // taxi yellow (primary)
+  static const accent2 = Color(0xFFFF8A00); // warm orange (secondary)
+  static const accentDark = Color(0xFFE0A800);
+  static const text = Color(0xFFF7F7F5);
+  static const subtext = Color(0xFF9A9A9F);
   static const danger = Color(0xFFFF5C5C);
-  static const amber = Color(0xFFFFC14D);
+  static const amber = Color(0xFFFFC400);
 
   // Brand gradient used on hero areas / primary buttons.
   static const brandGradient = LinearGradient(
