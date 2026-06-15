@@ -26,7 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
     }
     setState(() => loading = true);
     await Future.delayed(const Duration(milliseconds: 400));
-    final error = DataStore.registerUser({
+    final error = await DataStore.registerUser({
       'name': nameC.text.trim(),
       'email': emailC.text.trim(),
       'phone': phoneC.text.trim(),
