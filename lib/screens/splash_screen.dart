@@ -11,13 +11,13 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 1))
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
         ..forward();
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    Future.delayed(const Duration(milliseconds: 2000), () {
       if (!mounted) return;
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const LoginScreen()));
@@ -33,51 +33,34 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.bg, AppColors.bgSoft],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _c,
-            child: ScaleTransition(
-              scale: Tween(begin: 0.8, end: 1.0).animate(
-                  CurvedAnimation(parent: _c, curve: Curves.easeOutBack)),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Center(
+        child: FadeTransition(
+          opacity: _c,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Wordmark with a gold underscore cursor (the signature)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(26),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.brandGradient,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                            color: AppColors.accent.withOpacity(0.4),
-                            blurRadius: 36,
-                            spreadRadius: 4),
-                      ],
-                    ),
-                    child: const Icon(Icons.local_taxi_rounded,
-                        size: 60, color: Colors.black),
-                  ),
-                  const SizedBox(height: 24),
                   const Text('RideNow',
                       style: TextStyle(
-                          fontSize: 38,
-                          fontWeight: FontWeight.w900,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.text,
-                          letterSpacing: 1.5)),
-                  const SizedBox(height: 6),
-                  const Text('Your ride, on your time',
-                      style: TextStyle(color: AppColors.subtext, fontSize: 14)),
+                          letterSpacing: -1.5)),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 9, left: 3),
+                    child: Container(width: 11, height: 5, color: AppColors.accent),
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(height: 14),
+              Text('YOUR RIDE · ON YOUR TIME',
+                  style: AppText.eyebrow.copyWith(letterSpacing: 2.6)),
+            ],
           ),
         ),
       ),

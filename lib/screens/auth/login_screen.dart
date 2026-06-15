@@ -3,6 +3,7 @@ import '../../core/app_theme.dart';
 import '../../core/data_store.dart';
 import '../../core/helpers.dart';
 import '../admin/admin_dashboard.dart';
+import '../driver/driver_home.dart';
 import '../user/user_home.dart';
 import 'signup_screen.dart';
 
@@ -20,112 +21,125 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> doLogin() async {
     if (emailC.text.trim().isEmpty || passC.text.isEmpty) {
-      showSnack(context, 'Enter email and password', error: true);
+      showSnack(context, 'Enter your email and password', error: true);
       return;
     }
     setState(() => loading = true);
-    await Future.delayed(const Duration(milliseconds: 500)); // UX feel
+    await Future.delayed(const Duration(milliseconds: 450));
     final user = DataStore.login(emailC.text.trim(), passC.text);
     if (!mounted) return;
     setState(() => loading = false);
     if (user == null) {
-      showSnack(context, 'Invalid email or password', error: true);
+      showSnack(context, 'Those details don’t match an account', error: true);
     } else if (user['role'] == 'admin') {
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (_) => AdminDashboard(admin: user)));
+      _go(AdminDashboard(admin: user));
+    } else if (user['role'] == 'driver') {
+      _go(DriverHome(driver: user));
     } else {
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => UserHome(user: user)));
+      _go(UserHome(user: user));
     }
   }
+
+  void _go(Widget page) => Navigator.pushReplacement(
+      context, MaterialPageRoute(builder: (_) => page));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: const EdgeInsets.fromLTRB(24, 36, 24, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Hero badge
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: AppColors.brandGradient,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(Icons.local_taxi_rounded,
-                    color: Colors.black, size: 30),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('RideNow',
+                      style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
+                          letterSpacing: -1)),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6, left: 2),
+                    child: Container(
+                        width: 8, height: 4, color: AppColors.accent),
+                  ),
+                ],
               ),
-              const SizedBox(height: 28),
-              const Text('Welcome back', style: AppText.h1),
-              const SizedBox(height: 4),
-              const Text('Sign in to continue your journey',
-                  style: AppText.muted),
-              const SizedBox(height: 36),
-              _label('Email'),
+              const SizedBox(height: 64),
+              const Eyebrow('Welcome back'),
+              const SizedBox(height: 14),
+              const Text('Sign in to\nyour account', style: AppText.display),
+              const SizedBox(height: 44),
               TextField(
                 controller: emailC,
                 keyboardType: TextInputType.emailAddress,
                 style: AppText.body,
                 decoration: const InputDecoration(
-                    hintText: 'you@email.com',
-                    prefixIcon: Icon(Icons.email_outlined)),
+                    labelText: 'Email',
+                    labelStyle: TextStyle(color: AppColors.subtext)),
               ),
-              const SizedBox(height: 18),
-              _label('Password'),
+              const SizedBox(height: 22),
               TextField(
                 controller: passC,
                 obscureText: hidePass,
                 style: AppText.body,
                 decoration: InputDecoration(
-                  hintText: '••••••••',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  labelText: 'Password',
+                  labelStyle: const TextStyle(color: AppColors.subtext),
                   suffixIcon: IconButton(
                     icon: Icon(
-                        hidePass ? Icons.visibility_off : Icons.visibility,
-                        color: AppColors.subtext),
+                        hidePass
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.faint,
+                        size: 20),
                     onPressed: () => setState(() => hidePass = !hidePass),
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               GradientButton(
-                  label: 'Sign In',
-                  icon: Icons.arrow_forward,
+                  label: 'Sign in',
                   loading: loading,
                   onTap: doLogin),
-              const SizedBox(height: 20),
-              // Demo hint card
-              GlassCard(
-                padding: const EdgeInsets.all(14),
-                child: Row(children: [
-                  const Icon(Icons.info_outline,
-                      color: AppColors.accent2, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                        'Admin demo:  admin@ridenow.com  /  admin123',
-                        style: AppText.muted),
-                  ),
-                ]),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               Center(
-                child: TextButton(
-                  onPressed: () => Navigator.push(context,
+                child: GestureDetector(
+                  onTap: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const SignupScreen())),
                   child: const Text.rich(TextSpan(
-                      text: "Don't have an account?  ",
+                      text: 'New here?  ',
                       style: AppText.muted,
                       children: [
                         TextSpan(
-                            text: 'Sign Up',
+                            text: 'Create an account',
                             style: TextStyle(
                                 color: AppColors.accent,
-                                fontWeight: FontWeight.w800))
+                                fontWeight: FontWeight.w600))
                       ])),
+                ),
+              ),
+              const SizedBox(height: 36),
+              // Demo logins — quiet, monospace, no box
+              Container(
+                padding: const EdgeInsets.only(top: 18),
+                decoration: const BoxDecoration(
+                    border:
+                        Border(top: BorderSide(color: AppColors.line))),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('DEMO ACCESS', style: AppText.eyebrow),
+                    const SizedBox(height: 12),
+                    _demo('Admin', 'admin@ridenow.com', 'admin123'),
+                    const SizedBox(height: 8),
+                    _demo('Driver', 'driver@ridenow.com', 'driver123'),
+                    const SizedBox(height: 8),
+                    _demo('Rider', 'ayesha@gmail.com', '123456'),
+                  ],
                 ),
               ),
             ],
@@ -135,12 +149,29 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _label(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 8, left: 4),
-        child: Text(t,
-            style: const TextStyle(
-                color: AppColors.subtext,
-                fontSize: 13,
-                fontWeight: FontWeight.w600)),
-      );
+  Widget _demo(String role, String email, String pass) {
+    return GestureDetector(
+      onTap: () {
+        emailC.text = email;
+        passC.text = pass;
+      },
+      child: Row(
+        children: [
+          SizedBox(
+              width: 54,
+              child: Text(role,
+                  style: const TextStyle(
+                      color: AppColors.subtext,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Text('$email · $pass',
+                style: AppText.meter
+                    .copyWith(fontSize: 12, color: AppColors.faint)),
+          ),
+          const Icon(Icons.north_west, size: 13, color: AppColors.faint),
+        ],
+      ),
+    );
+  }
 }

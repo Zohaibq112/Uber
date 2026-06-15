@@ -13,70 +13,97 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
   void editUser(Map<String, dynamic> user) {
     final nameC = TextEditingController(text: user['name']);
     final phoneC = TextEditingController(text: user['phone'] ?? '');
+    _sheet(
+      title: 'Edit rider',
+      children: [
+        TextField(
+            controller: nameC,
+            style: AppText.body,
+            decoration: const InputDecoration(labelText: 'Name')),
+        const SizedBox(height: 16),
+        TextField(
+            controller: phoneC,
+            style: AppText.body,
+            decoration: const InputDecoration(labelText: 'Phone')),
+        const SizedBox(height: 24),
+        GradientButton(
+          label: 'Save',
+          onTap: () {
+            DataStore.updateUser(user['id'],
+                {'name': nameC.text.trim(), 'phone': phoneC.text.trim()});
+            Navigator.pop(context);
+            setState(() {});
+            showSnack(context, 'Rider updated');
+          },
+        ),
+      ],
+    );
+  }
+
+  void removeUser(int id) => _confirm(
+        'Delete rider?',
+        'Their trips will be removed too.',
+        () {
+          DataStore.deleteUser(id);
+          setState(() {});
+          showSnack(context, 'Rider deleted');
+        },
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final users = DataStore.getAllUsers();
+    if (users.isEmpty) return const _Empty('No riders yet');
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      itemCount: users.length,
+      itemBuilder: (_, i) {
+        final u = users[i];
+        return _PersonRow(
+          initial: u['name'][0].toUpperCase(),
+          name: u['name'],
+          sub: '${u['email']}${(u['phone'] ?? '').isNotEmpty ? '  ·  ${u['phone']}' : ''}',
+          onEdit: () => editUser(u),
+          onDelete: () => removeUser(u['id']),
+        );
+      },
+    );
+  }
+
+  void _sheet({required String title, required List<Widget> children}) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.bgSoft,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
-            20, 22, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.subtext,
-                    borderRadius: BorderRadius.circular(4))),
-            const SizedBox(height: 20),
-            const Text('Edit User', style: AppText.title),
-            const SizedBox(height: 18),
-            TextField(
-                controller: nameC,
-                style: AppText.body,
-                decoration: const InputDecoration(
-                    hintText: 'Name',
-                    prefixIcon: Icon(Icons.person_outline))),
-            const SizedBox(height: 14),
-            TextField(
-                controller: phoneC,
-                style: AppText.body,
-                decoration: const InputDecoration(
-                    hintText: 'Phone',
-                    prefixIcon: Icon(Icons.phone_outlined))),
-            const SizedBox(height: 22),
-            GradientButton(
-              label: 'Save',
-              icon: Icons.check,
-              onTap: () {
-                DataStore.updateUser(user['id'], {
-                  'name': nameC.text.trim(),
-                  'phone': phoneC.text.trim()
-                });
-                Navigator.pop(ctx);
-                setState(() {});
-                showSnack(context, 'User updated');
-              },
-            ),
-          ],
-        ),
+            22, 18, 22, MediaQuery.of(ctx).viewInsets.bottom + 26),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: AppColors.line,
+                  borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 22),
+          Align(alignment: Alignment.centerLeft, child: Eyebrow(title)),
+          const SizedBox(height: 18),
+          ...children,
+        ]),
       ),
     );
   }
 
-  void removeUser(int id) {
+  void _confirm(String title, String body, VoidCallback onYes) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete user?', style: AppText.title),
-        content: const Text('This will also remove all their rides.',
-            style: AppText.muted),
+        backgroundColor: AppColors.bgSoft,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(title, style: AppText.h2),
+        content: Text(body, style: AppText.muted),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -84,10 +111,8 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                   style: TextStyle(color: AppColors.subtext))),
           TextButton(
               onPressed: () {
-                DataStore.deleteUser(id);
                 Navigator.pop(ctx);
-                setState(() {});
-                showSnack(context, 'User deleted');
+                onYes();
               },
               child: const Text('Delete',
                   style: TextStyle(
@@ -96,65 +121,66 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
       ),
     );
   }
+}
 
+class _PersonRow extends StatelessWidget {
+  final String initial, name, sub;
+  final Widget? leadingDot;
+  final VoidCallback onEdit, onDelete;
+  const _PersonRow(
+      {required this.initial,
+      required this.name,
+      required this.sub,
+      required this.onEdit,
+      required this.onDelete,
+      this.leadingDot});
   @override
   Widget build(BuildContext context) {
-    final users = DataStore.getAllUsers();
-    if (users.isEmpty) {
-      return const Center(
-          child: Text('No users registered yet', style: AppText.muted));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: users.length,
-      itemBuilder: (_, i) {
-        final u = users[i];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.line))),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColors.cardHi,
+            child: Text(initial,
+                style: const TextStyle(
+                    color: AppColors.accent, fontWeight: FontWeight.w700)),
           ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.accent.withOpacity(0.15),
-                child: Text(u['name'][0].toUpperCase(),
-                    style: const TextStyle(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w800)),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(u['name'],
-                        style: const TextStyle(
-                            color: AppColors.text,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(u['email'], style: AppText.muted),
-                    if ((u['phone'] ?? '').isNotEmpty)
-                      Text(u['phone'], style: AppText.muted),
-                  ],
-                ),
-              ),
-              IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      color: AppColors.accent2, size: 22),
-                  onPressed: () => editUser(u)),
-              IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      color: AppColors.danger, size: 22),
-                  onPressed: () => removeUser(u['id'])),
-            ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: AppText.title),
+                const SizedBox(height: 2),
+                Text(sub,
+                    style: AppText.small,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ],
+            ),
           ),
-        );
-      },
+          IconButton(
+              icon: const Icon(Icons.edit_outlined,
+                  color: AppColors.subtext, size: 20),
+              onPressed: onEdit),
+          IconButton(
+              icon: const Icon(Icons.delete_outline,
+                  color: AppColors.danger, size: 20),
+              onPressed: onDelete),
+        ],
+      ),
     );
   }
+}
+
+class _Empty extends StatelessWidget {
+  final String msg;
+  const _Empty(this.msg);
+  @override
+  Widget build(BuildContext context) =>
+      Center(child: Text(msg, style: AppText.muted));
 }

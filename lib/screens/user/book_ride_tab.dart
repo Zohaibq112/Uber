@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../core/data_store.dart';
 import '../../core/helpers.dart';
+import '../../widgets/map_preview.dart';
 
 class BookRideTab extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -13,17 +14,13 @@ class BookRideTab extends StatefulWidget {
 class _BookRideTabState extends State<BookRideTab> {
   final pickupC = TextEditingController();
   final dropC = TextEditingController();
-  String vehicle = 'RideNow Mini';
+  String vehicle = 'Mini';
 
   static const vehicles = {
-    'RideNow Mini': {'icon': Icons.directions_car, 'rate': 30.0, 'eta': '3 min'},
-    'RideNow Go': {'icon': Icons.local_taxi, 'rate': 45.0, 'eta': '5 min'},
-    'RideNow Premium': {
-      'icon': Icons.airport_shuttle,
-      'rate': 70.0,
-      'eta': '7 min'
-    },
-    'RideNow Bike': {'icon': Icons.two_wheeler, 'rate': 15.0, 'eta': '2 min'},
+    'Mini': {'icon': Icons.directions_car_outlined, 'rate': 30.0, 'eta': '3 min'},
+    'Go': {'icon': Icons.local_taxi_outlined, 'rate': 45.0, 'eta': '5 min'},
+    'Premium': {'icon': Icons.airport_shuttle_outlined, 'rate': 70.0, 'eta': '7 min'},
+    'Bike': {'icon': Icons.two_wheeler_outlined, 'rate': 15.0, 'eta': '2 min'},
   };
 
   double estimateFare() {
@@ -34,7 +31,7 @@ class _BookRideTabState extends State<BookRideTab> {
 
   void confirmBooking() {
     if (pickupC.text.trim().isEmpty || dropC.text.trim().isEmpty) {
-      showSnack(context, 'Enter pickup and drop-off locations', error: true);
+      showSnack(context, 'Add a pickup and drop-off first', error: true);
       return;
     }
     final fare = estimateFare();
@@ -42,7 +39,7 @@ class _BookRideTabState extends State<BookRideTab> {
       'userId': widget.user['id'],
       'pickup': pickupC.text.trim(),
       'dropoff': dropC.text.trim(),
-      'vehicle': vehicle,
+      'vehicle': 'RideNow $vehicle',
       'fare': fare,
       'status': 'Pending',
       'createdAt': DateTime.now().toString().substring(0, 16),
@@ -50,160 +47,152 @@ class _BookRideTabState extends State<BookRideTab> {
     pickupC.clear();
     dropC.clear();
     setState(() {});
-    showSnack(context, 'Ride booked! Fare: Rs ${fare.toStringAsFixed(0)}');
+    showSnack(context, 'Ride requested — finding you a driver');
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasRoute = pickupC.text.isNotEmpty && dropC.text.isNotEmpty;
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Hello, ${widget.user['name']} 👋',
-                          style: AppText.h2),
-                      const Text('Where are you going today?',
-                          style: AppText.muted),
-                    ],
-                  ),
-                ),
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AppColors.accent.withOpacity(0.15),
-                  child: Text(
-                      widget.user['name'].toString()[0].toUpperCase(),
-                      style: const TextStyle(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 20)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            GlassCard(
-              child: Column(
-                children: [
-                  _locField(pickupC, 'Pickup location', Icons.my_location,
-                      AppColors.accent),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Divider(color: Colors.white.withOpacity(0.06)),
-                  ),
-                  _locField(dropC, 'Drop-off location', Icons.location_on,
-                      AppColors.danger),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text('Choose your ride', style: AppText.title),
-            const SizedBox(height: 14),
-            ...vehicles.entries.map((e) {
-              final selected = vehicle == e.key;
-              final rate = e.value['rate'] as double;
-              return GestureDetector(
-                onTap: () => setState(() => vehicle = e.key),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.cardHi : AppColors.card,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                        color: selected
-                            ? AppColors.accent
-                            : Colors.white.withOpacity(0.04),
-                        width: 1.6),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.accent.withOpacity(0.15)
-                              : AppColors.bgSoft,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(e.value['icon'] as IconData,
-                            color: selected
-                                ? AppColors.accent
-                                : AppColors.subtext,
-                            size: 26),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(e.key,
-                                style: TextStyle(
-                                    color: AppColors.text,
-                                    fontWeight: selected
-                                        ? FontWeight.w700
-                                        : FontWeight.w500)),
-                            Text('${e.value['eta']} away',
-                                style: AppText.muted),
-                          ],
-                        ),
-                      ),
-                      Text('Rs ${rate.toStringAsFixed(0)}/km',
-                          style: const TextStyle(
-                              color: AppColors.subtext,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: 8),
-            // Fare estimate bar
-            if (pickupC.text.isNotEmpty && dropC.text.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Estimated fare', style: AppText.muted),
-                    Text('Rs ${estimateFare().toStringAsFixed(0)}',
-                        style: const TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
+                    Eyebrow('Hello ${widget.user['name'].toString().split(' ').first}'),
+                    const SizedBox(height: 12),
+                    const Text('Where to?', style: AppText.display),
                   ],
                 ),
               ),
-            GradientButton(
-                label: 'Confirm Booking',
-                icon: Icons.check_circle_outline,
-                onTap: confirmBooking),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _locField(
-      TextEditingController c, String hint, IconData icon, Color color) {
-    return TextField(
-      controller: c,
-      style: AppText.body,
-      onChanged: (_) => setState(() {}), // live fare update
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: false,
-        prefixIcon: Icon(icon, color: color),
-        border: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        enabledBorder: InputBorder.none,
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.cardHi,
+                child: Text(
+                    widget.user['name'].toString()[0].toUpperCase(),
+                    style: const TextStyle(
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const MapPreview(),
+          const SizedBox(height: 28),
+          // Route inputs as clean rows with a connector
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Column(children: [
+                  const Dot(AppColors.accent, size: 9),
+                  Container(
+                      width: 1.5,
+                      height: 30,
+                      color: AppColors.line),
+                  const Icon(Icons.place, size: 15, color: AppColors.danger),
+                ]),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(children: [
+                  TextField(
+                    controller: pickupC,
+                    style: AppText.body,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(hintText: 'Pickup point'),
+                  ),
+                  TextField(
+                    controller: dropC,
+                    style: AppText.body,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(hintText: 'Destination'),
+                  ),
+                ]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
+          const Eyebrow('Choose a ride'),
+          const SizedBox(height: 6),
+          ...vehicles.entries.map((e) {
+            final sel = vehicle == e.key;
+            final rate = e.value['rate'] as double;
+            return GestureDetector(
+              onTap: () => setState(() => vehicle = e.key),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: const BoxDecoration(
+                    border: Border(
+                        bottom: BorderSide(color: AppColors.line))),
+                child: Row(
+                  children: [
+                    Icon(e.value['icon'] as IconData,
+                        color: sel ? AppColors.accent : AppColors.subtext,
+                        size: 26),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('RideNow ${e.key}',
+                              style: AppText.title.copyWith(
+                                  color: sel
+                                      ? AppColors.text
+                                      : AppColors.text.withOpacity(0.85))),
+                          Text('${e.value['eta']} away',
+                              style: AppText.small),
+                        ],
+                      ),
+                    ),
+                    Text('Rs ${rate.toStringAsFixed(0)}/km',
+                        style: AppText.meter.copyWith(
+                            fontSize: 12.5, color: AppColors.subtext)),
+                    const SizedBox(width: 12),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: sel ? AppColors.accent : AppColors.faint,
+                            width: 2),
+                      ),
+                      child: sel
+                          ? const Center(
+                              child: Dot(AppColors.accent, size: 8))
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 24),
+          if (hasRoute)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Eyebrow('Fare estimate'),
+                  Money(estimateFare(), size: 24, color: AppColors.text),
+                ],
+              ),
+            ),
+          GradientButton(
+              label: 'Request RideNow $vehicle',
+              onTap: confirmBooking),
+        ],
       ),
     );
   }

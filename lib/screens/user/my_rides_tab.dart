@@ -3,6 +3,7 @@ import '../../core/app_theme.dart';
 import '../../core/data_store.dart';
 import '../../core/helpers.dart';
 import '../../widgets/ride_card.dart';
+import '../../widgets/section_header.dart';
 
 class MyRidesTab extends StatefulWidget {
   final int userId;
@@ -25,26 +26,22 @@ class _MyRidesTabState extends State<MyRidesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
-            child: Text('My Rides', style: AppText.h2),
-          ),
+          const PageHeader(eyebrow: 'Your history', title: 'Trips'),
           Expanded(
             child: rides.isEmpty
-                ? _empty()
+                ? const _Empty()
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                     itemCount: rides.length,
                     itemBuilder: (_, i) => RideCard(
                       ride: rides[i],
                       trailing: rides[i]['status'] == 'Pending'
                           ? GestureDetector(
                               onTap: () => cancelRide(rides[i]['id']),
-                              child: const Text('Cancel',
-                                  style: TextStyle(
+                              child: Text('Cancel ride',
+                                  style: AppText.small.copyWith(
                                       color: AppColors.danger,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13)))
+                                      fontWeight: FontWeight.w600)))
                           : null,
                     ),
                   ),
@@ -53,17 +50,18 @@ class _MyRidesTabState extends State<MyRidesTab> {
       ),
     );
   }
+}
 
-  Widget _empty() => Center(
+class _Empty extends StatelessWidget {
+  const _Empty();
+  @override
+  Widget build(BuildContext context) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined,
-                size: 64, color: AppColors.subtext.withOpacity(0.5)),
-            const SizedBox(height: 16),
-            const Text('No rides yet', style: AppText.title),
-            const SizedBox(height: 4),
-            const Text('Book your first ride to see it here',
+            const Text('No trips yet', style: AppText.h2),
+            const SizedBox(height: 8),
+            Text('Your booked rides will appear here',
                 style: AppText.muted),
           ],
         ),

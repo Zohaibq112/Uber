@@ -20,7 +20,8 @@ class _SignupScreenState extends State<SignupScreen> {
     if (nameC.text.trim().isEmpty ||
         emailC.text.trim().isEmpty ||
         passC.text.length < 6) {
-      showSnack(context, 'Fill all fields (password min 6 chars)', error: true);
+      showSnack(context, 'Fill every field — password needs 6+ characters',
+          error: true);
       return;
     }
     setState(() => loading = true);
@@ -36,7 +37,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (error != null) {
       showSnack(context, error, error: true);
     } else {
-      showSnack(context, 'Account created! Please sign in.');
+      showSnack(context, 'Account created — sign in to continue');
       Navigator.pop(context);
     }
   }
@@ -44,46 +45,46 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.text),
+            onPressed: () => Navigator.pop(context)),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Join RideNow', style: AppText.h2),
-            const SizedBox(height: 4),
-            const Text('Create an account to start booking rides',
-                style: AppText.muted),
-            const SizedBox(height: 28),
-            _field(nameC, 'Full Name', Icons.person_outline),
-            const SizedBox(height: 16),
-            _field(emailC, 'Email', Icons.email_outlined,
-                type: TextInputType.emailAddress),
-            const SizedBox(height: 16),
-            _field(phoneC, 'Phone', Icons.phone_outlined,
-                type: TextInputType.phone),
-            const SizedBox(height: 16),
-            _field(passC, 'Password', Icons.lock_outline, obscure: true),
-            const SizedBox(height: 32),
+            const Eyebrow('Get started'),
+            const SizedBox(height: 14),
+            const Text('Create your\naccount', style: AppText.display),
+            const SizedBox(height: 40),
+            _f(nameC, 'Full name'),
+            const SizedBox(height: 20),
+            _f(emailC, 'Email', type: TextInputType.emailAddress),
+            const SizedBox(height: 20),
+            _f(phoneC, 'Phone', type: TextInputType.phone),
+            const SizedBox(height: 20),
+            _f(passC, 'Password', obscure: true),
+            const SizedBox(height: 40),
             GradientButton(
-                label: 'Create Account',
-                icon: Icons.person_add_alt,
-                loading: loading,
-                onTap: doSignup),
+                label: 'Create account', loading: loading, onTap: doSignup),
           ],
         ),
       ),
     );
   }
 
-  Widget _field(TextEditingController c, String hint, IconData icon,
+  Widget _f(TextEditingController c, String label,
       {bool obscure = false, TextInputType? type}) {
     return TextField(
       controller: c,
       obscureText: obscure,
       keyboardType: type,
       style: AppText.body,
-      decoration: InputDecoration(hintText: hint, prefixIcon: Icon(icon)),
+      decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: AppColors.subtext)),
     );
   }
 }

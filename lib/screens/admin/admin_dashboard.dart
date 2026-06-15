@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
+import '../../widgets/bottom_bar.dart';
+import '../../widgets/section_header.dart';
 import '../auth/login_screen.dart';
 import 'admin_stats_tab.dart';
 import 'admin_users_tab.dart';
+import 'admin_drivers_tab.dart';
 import 'admin_rides_tab.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -17,61 +20,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final titles = ['Dashboard', 'Manage Users', 'Manage Rides'];
+    final headers = [
+      ('Console', 'Overview'),
+      ('People', 'Riders'),
+      ('Fleet', 'Drivers'),
+      ('Activity', 'Rides'),
+    ];
     final pages = [
       const AdminStatsTab(),
       const AdminUsersTab(),
+      const AdminDriversTab(),
       const AdminRidesTab(),
     ];
     return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[tab]),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.danger),
-            onPressed: () => Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false),
-          )
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            PageHeader(
+              eyebrow: headers[tab].$1,
+              title: headers[tab].$2,
+              trailing: CircleIconButton(
+                icon: Icons.logout,
+                color: AppColors.danger,
+                onTap: () => Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false),
+              ),
+            ),
+            Expanded(child: pages[tab]),
+          ],
+        ),
       ),
-      body: pages[tab],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          border:
-              Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
-        ),
-        child: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            backgroundColor: Colors.transparent,
-            indicatorColor: AppColors.accent.withOpacity(0.16),
-            labelTextStyle: WidgetStateProperty.all(
-                const TextStyle(fontSize: 12, color: AppColors.subtext)),
-          ),
-          child: NavigationBar(
-            selectedIndex: tab,
-            height: 68,
-            onDestinationSelected: (i) => setState(() => tab = i),
-            destinations: const [
-              NavigationDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  selectedIcon:
-                      Icon(Icons.dashboard, color: AppColors.accent),
-                  label: 'Overview'),
-              NavigationDestination(
-                  icon: Icon(Icons.people_outline),
-                  selectedIcon: Icon(Icons.people, color: AppColors.accent),
-                  label: 'Users'),
-              NavigationDestination(
-                  icon: Icon(Icons.directions_car_outlined),
-                  selectedIcon:
-                      Icon(Icons.directions_car, color: AppColors.accent),
-                  label: 'Rides'),
-            ],
-          ),
-        ),
+      bottomNavigationBar: BottomBar(
+        index: tab,
+        onTap: (i) => setState(() => tab = i),
+        items: const [
+          NavItem(Icons.bar_chart_rounded, 'Overview'),
+          NavItem(Icons.people_outline, 'Riders'),
+          NavItem(Icons.local_taxi_outlined, 'Drivers'),
+          NavItem(Icons.swap_vert_rounded, 'Rides'),
+        ],
       ),
     );
   }

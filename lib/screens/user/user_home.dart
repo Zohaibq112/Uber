@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/app_theme.dart';
+import '../../widgets/bottom_bar.dart';
 import 'book_ride_tab.dart';
 import 'my_rides_tab.dart';
 import 'profile_tab.dart';
@@ -13,7 +13,6 @@ class UserHome extends StatefulWidget {
 
 class _UserHomeState extends State<UserHome> {
   int tab = 0;
-
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -23,41 +22,14 @@ class _UserHomeState extends State<UserHome> {
     ];
     return Scaffold(
       body: pages[tab],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          border:
-              Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
-        ),
-        child: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            backgroundColor: Colors.transparent,
-            indicatorColor: AppColors.accent.withOpacity(0.16),
-            labelTextStyle: WidgetStateProperty.all(
-                const TextStyle(fontSize: 12, color: AppColors.subtext)),
-          ),
-          child: NavigationBar(
-            selectedIndex: tab,
-            height: 68,
-            onDestinationSelected: (i) => setState(() => tab = i),
-            destinations: const [
-              NavigationDestination(
-                  icon: Icon(Icons.directions_car_outlined),
-                  selectedIcon:
-                      Icon(Icons.directions_car, color: AppColors.accent),
-                  label: 'Book'),
-              NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon:
-                      Icon(Icons.receipt_long, color: AppColors.accent),
-                  label: 'My Rides'),
-              NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person, color: AppColors.accent),
-                  label: 'Profile'),
-            ],
-          ),
-        ),
+      bottomNavigationBar: BottomBar(
+        index: tab,
+        onTap: (i) => setState(() => tab = i),
+        items: const [
+          NavItem(Icons.explore_outlined, 'Book'),
+          NavItem(Icons.receipt_long_outlined, 'Trips'),
+          NavItem(Icons.person_outline, 'Profile'),
+        ],
       ),
     );
   }

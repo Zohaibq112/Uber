@@ -1,128 +1,234 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 
-/// Status -> color used across the app.
 Color statusColor(String status) {
   switch (status) {
     case 'Completed':
-      return AppColors.accent;
+      return AppColors.trust;
     case 'Accepted':
-      return AppColors.accent2;
+      return const Color(0xFF3B82F6);
     case 'Cancelled':
       return AppColors.danger;
     default:
-      return const Color(0xFFFFA726); // Pending (amber-orange)
+      return AppColors.accent2; // Pending
   }
 }
 
-/// Floating styled snackbar.
 void showSnack(BuildContext context, String msg, {bool error = false}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(
       content: Row(children: [
-        Icon(error ? Icons.error_outline : Icons.check_circle_outline,
-            color: Colors.white, size: 20),
+        Icon(error ? Icons.error_outline : Icons.check_circle,
+            color: error ? Colors.white : AppColors.trust, size: 19),
         const SizedBox(width: 10),
-        Expanded(child: Text(msg)),
+        Expanded(
+            child: Text(msg,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5))),
       ]),
-      backgroundColor: error ? AppColors.danger : AppColors.accentDark,
+      backgroundColor: error ? AppColors.danger : AppColors.ink,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      margin: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      elevation: 0,
+      duration: const Duration(seconds: 2),
     ));
 }
 
-/// Primary gradient button used throughout the app.
-class GradientButton extends StatelessWidget {
+/// Primary action — solid ink (black), white label. (Name kept stable.)
+class GradientButton extends StatefulWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onTap;
   final bool loading;
+  const GradientButton(
+      {super.key,
+      required this.label,
+      this.icon,
+      this.onTap,
+      this.loading = false});
+  @override
+  State<GradientButton> createState() => _GradientButtonState();
+}
 
-  const GradientButton({
-    super.key,
-    required this.label,
-    this.icon,
-    this.onTap,
-    this.loading = false,
-  });
-
+class _GradientButtonState extends State<GradientButton> {
+  double _s = 1;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: loading ? null : onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 54,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: AppColors.brandGradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withOpacity(0.25),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Center(
-          child: loading
-              ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.4, color: Colors.black))
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (icon != null) ...[
-                      Icon(icon, color: Colors.black, size: 20),
-                      const SizedBox(width: 8),
+      onTapDown: (_) => setState(() => _s = 0.98),
+      onTapUp: (_) => setState(() => _s = 1),
+      onTapCancel: () => setState(() => _s = 1),
+      onTap: widget.loading ? null : widget.onTap,
+      child: AnimatedScale(
+        scale: _s,
+        duration: const Duration(milliseconds: 110),
+        child: Container(
+          height: 54,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.ink,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Center(
+            child: widget.loading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.2, color: Colors.white))
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (widget.icon != null) ...[
+                        Icon(widget.icon, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(widget.label,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2)),
                     ],
-                    Text(label,
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800)),
-                  ],
-                ),
+                  ),
+          ),
         ),
       ),
     );
   }
 }
 
-/// A soft glassy card container.
-class GlassCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets padding;
+/// Secondary — outlined, no fill.
+class GhostButton extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final Color color;
   final VoidCallback? onTap;
-  final Color? border;
-
-  const GlassCard({
-    super.key,
-    required this.child,
-    this.padding = const EdgeInsets.all(18),
-    this.onTap,
-    this.border,
-  });
-
+  const GhostButton(
+      {super.key,
+      required this.label,
+      this.icon,
+      this.color = AppColors.text,
+      this.onTap});
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: padding,
+        height: 54,
+        width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: border ?? Colors.white.withOpacity(0.04), width: 1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.line, width: 1.4),
         ),
-        child: child,
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: color, size: 18),
+                const SizedBox(width: 8),
+              ],
+              Text(label,
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
       ),
     );
+  }
+}
+
+class Eyebrow extends StatelessWidget {
+  final String text;
+  const Eyebrow(this.text, {super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 14, height: 2, color: AppColors.accent),
+      const SizedBox(width: 8),
+      Text(text.toUpperCase(), style: AppText.eyebrow),
+    ]);
+  }
+}
+
+class Money extends StatelessWidget {
+  final num amount;
+  final double size;
+  final Color color;
+  const Money(this.amount,
+      {super.key, this.size = 15, this.color = AppColors.text});
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text('Rs',
+          style: TextStyle(
+              color: color.withOpacity(0.5),
+              fontSize: size * 0.62,
+              fontWeight: FontWeight.w600)),
+      const SizedBox(width: 3),
+      Text(amount.toStringAsFixed(0),
+          style: AppText.meter.copyWith(color: color, fontSize: size)),
+    ]);
+  }
+}
+
+class Dot extends StatelessWidget {
+  final Color color;
+  final double size;
+  const Dot(this.color, {super.key, this.size = 8});
+  @override
+  Widget build(BuildContext context) => Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+}
+
+/// Trust signal: a green verified pill.
+class VerifiedBadge extends StatelessWidget {
+  const VerifiedBadge({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.trust.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.verified, size: 13, color: AppColors.trust),
+        const SizedBox(width: 4),
+        Text('Verified',
+            style: TextStyle(
+                color: AppColors.trust,
+                fontSize: 11,
+                fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+}
+
+/// Trust signal: a star rating.
+class Rating extends StatelessWidget {
+  final double value;
+  const Rating(this.value, {super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      const Icon(Icons.star_rounded, size: 15, color: AppColors.accent),
+      const SizedBox(width: 3),
+      Text(value.toStringAsFixed(1),
+          style: const TextStyle(
+              color: AppColors.text,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700)),
+    ]);
   }
 }
