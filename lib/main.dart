@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'core/app_theme.dart';
-import 'core/data_store.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
-  // Seed demo data once at startup (pure in-memory, runs anywhere).
-  DataStore.seed();
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const RideNowApp());
 }
 

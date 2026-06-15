@@ -15,19 +15,50 @@ class DriverRequestsTab extends StatefulWidget {
 }
 
 class _DriverRequestsTabState extends State<DriverRequestsTab> {
-  bool get online => widget.driver['online'] == true;
+  // online is stored as 1/0 in SQLite.
+  bool online = true;
+  Map<String, dynamic> stats = {'earnings': 0.0, 'trips': 0, 'completed': 0};
+  List<Map<String, dynamic>> requests = [];
+  bool loading = true;
 
-  void acceptRide(int rideId) {
-    DataStore.acceptRide(rideId, widget.driver['id'], widget.driver['name']);
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    online = widget.driver['online'] == 1;
+    _load();
+  }
+
+  // Load online state, earnings, and the request feed from the database.
+  Future<void> _load() async {
+    final s = await DataStore.driverStats(widget.driver['id']);
+    final r = online ? await DataStore.availableRequests() : <Map<String, dynamic>>[];
+    if (!mounted) return;
+    setState(() {
+      stats = s;
+      requests = r;
+      loading = false;
+    });
+  }
+
+  Future<void> acceptRide(int rideId) async {
+    await DataStore.acceptRide(
+        rideId, widget.driver['id'], widget.driver['name']);
+    if (!mounted) return;
     widget.onChanged();
     showSnack(context, 'Accepted — see it under Trips');
+    _load();
+  }
+
+  Future<void> toggleOnline(bool v) async {
+    await DataStore.setDriverOnline(widget.driver['id'], v);
+    widget.driver['online'] = v ? 1 : 0;
+    if (!mounted) return;
+    setState(() => online = v);
+    _load();
   }
 
   @override
   Widget build(BuildContext context) {
-    final requests = online ? DataStore.availableRequests() : [];
-    final stats = DataStore.driverStats(widget.driver['id']);
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,11 +75,12 @@ class _DriverRequestsTabState extends State<DriverRequestsTab> {
                   (route) => false),
             ),
           ),
-          // Earnings strip — figures only, divided, no boxes
+          // Earnings strip
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(children: [
-              _stat('Earnings', 'Rs ${(stats['earnings'] as double).toStringAsFixed(0)}'),
+              _stat('Earnings',
+                  'Rs ${(stats['earnings'] as double).toStringAsFixed(0)}'),
               _divider(),
               _stat('Trips', '${stats['trips']}'),
               _divider(),
@@ -56,11 +88,11 @@ class _DriverRequestsTabState extends State<DriverRequestsTab> {
             ]),
           ),
           const SizedBox(height: 8),
-          // Online toggle row
+          // Online toggle
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(children: [
-              Dot(online ? AppColors.accent : AppColors.faint, size: 9),
+              Dot(online ? AppColors.trust : AppColors.faint, size: 9),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(online ? 'Online · taking rides' : 'Offline',
@@ -71,30 +103,27 @@ class _DriverRequestsTabState extends State<DriverRequestsTab> {
                 activeColor: Colors.white,
                 activeTrackColor: AppColors.trust,
                 inactiveTrackColor: AppColors.cardHi,
-                onChanged: (v) {
-                  DataStore.setDriverOnline(widget.driver['id'], v);
-                  widget.driver['online'] = v;
-                  setState(() {});
-                },
+                onChanged: toggleOnline,
               ),
             ]),
           ),
           Container(height: 1, color: AppColors.line),
           Expanded(
-            child: requests.isEmpty
-                ? Center(
-                    child: Text(
-                        online
-                            ? 'No requests right now'
-                            : 'Go online to receive rides',
-                        style: AppText.muted),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    itemCount: requests.length,
-                    itemBuilder: (_, i) =>
-                        _request(requests[i] as Map<String, dynamic>),
-                  ),
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : requests.isEmpty
+                    ? Center(
+                        child: Text(
+                            online
+                                ? 'No requests right now'
+                                : 'Go online to receive rides',
+                            style: AppText.muted),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        itemCount: requests.length,
+                        itemBuilder: (_, i) => _request(requests[i]),
+                      ),
           ),
         ],
       ),
@@ -153,7 +182,8 @@ class _DriverRequestsTabState extends State<DriverRequestsTab> {
             ),
           ]),
           const SizedBox(height: 16),
-          GradientButton(label: 'Accept ride', onTap: () => acceptRide(r['id'])),
+          GradientButton(
+              label: 'Accept ride', onTap: () => acceptRide(r['id'])),
         ],
       ),
     );

@@ -28,9 +28,10 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
         const SizedBox(height: 24),
         GradientButton(
           label: 'Save',
-          onTap: () {
-            DataStore.updateUser(user['id'],
+          onTap: () async {
+            await DataStore.updateUser(user['id'],
                 {'name': nameC.text.trim(), 'phone': phoneC.text.trim()});
+            if (!mounted) return;
             Navigator.pop(context);
             setState(() {});
             showSnack(context, 'Rider updated');
@@ -43,8 +44,9 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
   void removeUser(int id) => _confirm(
         'Delete rider?',
         'Their trips will be removed too.',
-        () {
-          DataStore.deleteUser(id);
+        () async {
+          await DataStore.deleteUser(id);
+          if (!mounted) return;
           setState(() {});
           showSnack(context, 'Rider deleted');
         },
@@ -52,19 +54,27 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
 
   @override
   Widget build(BuildContext context) {
-    final users = DataStore.getAllUsers();
-    if (users.isEmpty) return const _Empty('No riders yet');
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-      itemCount: users.length,
-      itemBuilder: (_, i) {
-        final u = users[i];
-        return _PersonRow(
-          initial: u['name'][0].toUpperCase(),
-          name: u['name'],
-          sub: '${u['email']}${(u['phone'] ?? '').isNotEmpty ? '  ·  ${u['phone']}' : ''}',
-          onEdit: () => editUser(u),
-          onDelete: () => removeUser(u['id']),
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DataStore.getAllUsers(),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final users = snap.data!;
+        if (users.isEmpty) return const _Empty('No riders yet');
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          itemCount: users.length,
+          itemBuilder: (_, i) {
+            final u = users[i];
+            return _PersonRow(
+              initial: u['name'][0].toUpperCase(),
+              name: u['name'],
+              sub: '${u['email']}${(u['phone'] ?? '').isNotEmpty ? '  ·  ${u['phone']}' : ''}',
+              onEdit: () => editUser(u),
+              onDelete: () => removeUser(u['id']),
+            );
+          },
         );
       },
     );

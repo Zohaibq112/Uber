@@ -26,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => loading = true);
     await Future.delayed(const Duration(milliseconds: 450));
-    final user = DataStore.login(emailC.text.trim(), passC.text);
+    final user = await DataStore.login(emailC.text.trim(), passC.text);
     if (!mounted) return;
     setState(() => loading = false);
     if (user == null) {
