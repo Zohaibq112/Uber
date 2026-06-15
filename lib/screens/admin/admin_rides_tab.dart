@@ -32,9 +32,8 @@ class _AdminRidesTabState extends State<AdminRidesTab> {
           ...statuses.map((sName) => ListTile(
                 leading: Dot(statusColor(sName), size: 9),
                 title: Text(sName, style: AppText.body),
-                onTap: () async {
-                  await DataStore.updateRideStatus(ride['id'], sName);
-                  if (!mounted) return;
+                onTap: () {
+                  DataStore.updateRideStatus(ride['id'], sName);
                   Navigator.pop(ctx);
                   setState(() {});
                   showSnack(context, 'Marked $sName');
@@ -48,45 +47,34 @@ class _AdminRidesTabState extends State<AdminRidesTab> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DataStore.allRides(),
-      builder: (context, snap) {
-        if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final rides = snap.data!;
-        if (rides.isEmpty) {
-          return Center(child: Text('No rides yet', style: AppText.muted));
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-          itemCount: rides.length,
-          itemBuilder: (_, i) => RideCard(
-            ride: rides[i],
-            showUser: true,
-            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-              GestureDetector(
-                  onTap: () => changeStatus(rides[i]),
-                  child: Text('Change status',
-                      style: AppText.small.copyWith(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w600))),
-              const SizedBox(width: 18),
-              GestureDetector(
-                  onTap: () async {
-                    await DataStore.deleteRide(rides[i]['id']);
-                    if (!mounted) return;
-                    setState(() {});
-                    showSnack(context, 'Ride deleted');
-                  },
-                  child: Text('Delete',
-                      style: AppText.small.copyWith(
-                          color: AppColors.danger,
-                          fontWeight: FontWeight.w600))),
-            ]),
-          ),
-        );
-      },
+    final rides = DataStore.allRides();
+    if (rides.isEmpty) {
+      return Center(child: Text('No rides yet', style: AppText.muted));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      itemCount: rides.length,
+      itemBuilder: (_, i) => RideCard(
+        ride: rides[i],
+        showUser: true,
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          GestureDetector(
+              onTap: () => changeStatus(rides[i]),
+              child: Text('Change status',
+                  style: AppText.small.copyWith(
+                      color: AppColors.accent, fontWeight: FontWeight.w600))),
+          const SizedBox(width: 18),
+          GestureDetector(
+              onTap: () {
+                DataStore.deleteRide(rides[i]['id']);
+                setState(() {});
+                showSnack(context, 'Ride deleted');
+              },
+              child: Text('Delete',
+                  style: AppText.small.copyWith(
+                      color: AppColors.danger, fontWeight: FontWeight.w600))),
+        ]),
+      ),
     );
   }
 }

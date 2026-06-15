@@ -13,46 +13,38 @@ class MyRidesTab extends StatefulWidget {
 }
 
 class _MyRidesTabState extends State<MyRidesTab> {
-  Future<void> cancelRide(int id) async {
-    await DataStore.updateRideStatus(id, 'Cancelled');
-    if (!mounted) return;
+  void cancelRide(int id) {
+    DataStore.updateRideStatus(id, 'Cancelled');
     setState(() {});
     showSnack(context, 'Ride cancelled');
   }
 
   @override
   Widget build(BuildContext context) {
+    final rides = DataStore.userRides(widget.userId);
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const PageHeader(eyebrow: 'Your history', title: 'Trips'),
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: DataStore.userRides(widget.userId),
-              builder: (context, snap) {
-                if (!snap.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final rides = snap.data!;
-                if (rides.isEmpty) return const _Empty();
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  itemCount: rides.length,
-                  itemBuilder: (_, i) => RideCard(
-                    ride: rides[i],
-                    trailing: rides[i]['status'] == 'Pending'
-                        ? GestureDetector(
-                            onTap: () => cancelRide(rides[i]['id']),
-                            child: Text('Cancel ride',
-                                style: AppText.small.copyWith(
-                                    color: AppColors.danger,
-                                    fontWeight: FontWeight.w600)))
-                        : null,
+            child: rides.isEmpty
+                ? const _Empty()
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    itemCount: rides.length,
+                    itemBuilder: (_, i) => RideCard(
+                      ride: rides[i],
+                      trailing: rides[i]['status'] == 'Pending'
+                          ? GestureDetector(
+                              onTap: () => cancelRide(rides[i]['id']),
+                              child: Text('Cancel ride',
+                                  style: AppText.small.copyWith(
+                                      color: AppColors.danger,
+                                      fontWeight: FontWeight.w600)))
+                          : null,
+                    ),
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -69,7 +61,8 @@ class _Empty extends StatelessWidget {
           children: [
             const Text('No trips yet', style: AppText.h2),
             const SizedBox(height: 8),
-            Text('Your booked rides will appear here', style: AppText.muted),
+            Text('Your booked rides will appear here',
+                style: AppText.muted),
           ],
         ),
       );

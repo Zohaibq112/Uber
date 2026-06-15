@@ -16,12 +16,11 @@ class _ProfileTabState extends State<ProfileTab> {
   late final nameC = TextEditingController(text: widget.user['name']);
   late final phoneC = TextEditingController(text: widget.user['phone'] ?? '');
 
-  Future<void> saveProfile() async {
-    await DataStore.updateUser(widget.user['id'],
+  void saveProfile() {
+    DataStore.updateUser(widget.user['id'],
         {'name': nameC.text.trim(), 'phone': phoneC.text.trim()});
     widget.user['name'] = nameC.text.trim();
     widget.user['phone'] = phoneC.text.trim();
-    if (!mounted) return;
     setState(() {});
     showSnack(context, 'Profile saved');
   }

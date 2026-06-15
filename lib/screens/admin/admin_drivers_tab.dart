@@ -47,7 +47,7 @@ class _AdminDriversTabState extends State<AdminDriversTab> {
             const SizedBox(height: 24),
             GradientButton(
               label: 'Add driver',
-              onTap: () async {
+              onTap: () {
                 if (nameC.text.trim().isEmpty ||
                     emailC.text.trim().isEmpty ||
                     passC.text.length < 6) {
@@ -55,14 +55,13 @@ class _AdminDriversTabState extends State<AdminDriversTab> {
                       error: true);
                   return;
                 }
-                final err = await DataStore.addDriver({
+                final err = DataStore.addDriver({
                   'name': nameC.text.trim(),
                   'email': emailC.text.trim(),
                   'phone': phoneC.text.trim(),
                   'vehicle': vehicleC.text.trim(),
                   'password': passC.text,
                 });
-                if (!mounted) return;
                 if (err != null) {
                   showSnack(context, err, error: true);
                   return;
@@ -94,9 +93,8 @@ class _AdminDriversTabState extends State<AdminDriversTab> {
               child: const Text('Cancel',
                   style: TextStyle(color: AppColors.subtext))),
           TextButton(
-              onPressed: () async {
-                await DataStore.deleteDriver(id);
-                if (!mounted) return;
+              onPressed: () {
+                DataStore.deleteDriver(id);
                 Navigator.pop(ctx);
                 setState(() {});
                 showSnack(context, 'Driver removed');
@@ -111,81 +109,71 @@ class _AdminDriversTabState extends State<AdminDriversTab> {
 
   @override
   Widget build(BuildContext context) {
+    final drivers = DataStore.getAllDrivers();
     return Stack(
       children: [
-        FutureBuilder<List<Map<String, dynamic>>>(
-          future: DataStore.getAllDrivers(),
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final drivers = snap.data!;
-            if (drivers.isEmpty) {
-              return Center(child: Text('No drivers yet', style: AppText.muted));
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 90),
-              itemCount: drivers.length,
-              itemBuilder: (_, i) {
-                final d = drivers[i];
-                final online = d['online'] == 1;
-                return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: const BoxDecoration(
-                      border:
-                          Border(bottom: BorderSide(color: AppColors.line))),
-                  child: Row(
-                    children: [
-                      Stack(children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: AppColors.cardHi,
-                          child: const Icon(Icons.local_taxi_outlined,
-                              color: AppColors.accent, size: 20),
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: online
-                                  ? AppColors.trust
-                                  : AppColors.faint,
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: AppColors.bg, width: 2),
-                            ),
+        if (drivers.isEmpty)
+          Center(child: Text('No drivers yet', style: AppText.muted))
+        else
+          ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 90),
+            itemCount: drivers.length,
+            itemBuilder: (_, i) {
+              final d = drivers[i];
+              final online = d['online'] == true;
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: const BoxDecoration(
+                    border:
+                        Border(bottom: BorderSide(color: AppColors.line))),
+                child: Row(
+                  children: [
+                    Stack(children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: AppColors.cardHi,
+                        child: const Icon(Icons.local_taxi_outlined,
+                            color: AppColors.accent, size: 20),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color:
+                                online ? AppColors.accent : AppColors.faint,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.bg, width: 2),
                           ),
                         ),
-                      ]),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(d['name'], style: AppText.title),
-                            const SizedBox(height: 2),
-                            Text(
-                                '${d['vehicle']?.toString().isNotEmpty == true ? d['vehicle'] : 'No vehicle'}  ·  ${online ? 'Online' : 'Offline'}',
-                                style: AppText.small,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                          ],
-                        ),
                       ),
-                      IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: AppColors.danger, size: 20),
-                          onPressed: () => removeDriver(d['id'])),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        ),
+                    ]),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(d['name'], style: AppText.title),
+                          const SizedBox(height: 2),
+                          Text(
+                              '${d['vehicle']?.toString().isNotEmpty == true ? d['vehicle'] : 'No vehicle'}  ·  ${online ? 'Online' : 'Offline'}',
+                              style: AppText.small,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: AppColors.danger, size: 20),
+                        onPressed: () => removeDriver(d['id'])),
+                  ],
+                ),
+              );
+            },
+          ),
         Positioned(
           right: 20,
           bottom: 20,

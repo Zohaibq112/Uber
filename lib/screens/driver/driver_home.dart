@@ -15,30 +15,15 @@ class DriverHome extends StatefulWidget {
 
 class _DriverHomeState extends State<DriverHome> {
   int tab = 0;
-  int unread = 0; // badge count, loaded from the database
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUnread();
-  }
-
-  // Read the unread notification count and refresh the badge.
-  Future<void> _loadUnread() async {
-    final count = await DataStore.unreadCount(widget.driver['id']);
-    if (!mounted) return;
-    setState(() => unread = count);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final unread = DataStore.unreadCount(widget.driver['id']);
     final pages = [
-      DriverRequestsTab(
-          driver: widget.driver, onChanged: () => _loadUnread()),
+      DriverRequestsTab(driver: widget.driver, onChanged: () => setState(() {})),
       const DriverAllRidesTab(),
       DriverTripsTab(driverId: widget.driver['id']),
       DriverAlertsTab(
-          driverId: widget.driver['id'], onRead: () => _loadUnread()),
+          driverId: widget.driver['id'], onRead: () => setState(() {})),
     ];
     return Scaffold(
       body: pages[tab],

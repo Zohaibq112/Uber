@@ -16,6 +16,10 @@ class _DriverAllRidesTabState extends State<DriverAllRidesTab> {
 
   @override
   Widget build(BuildContext context) {
+    var rides = DataStore.allRides();
+    if (filter != 'All') {
+      rides = rides.where((r) => r['status'] == filter).toList();
+    }
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,8 +43,9 @@ class _DriverAllRidesTabState extends State<DriverAllRidesTab> {
                     children: [
                       Text(f,
                           style: TextStyle(
-                              color:
-                                  sel ? AppColors.text : AppColors.subtext,
+                              color: sel
+                                  ? AppColors.text
+                                  : AppColors.subtext,
                               fontSize: 14,
                               fontWeight:
                                   sel ? FontWeight.w700 : FontWeight.w500)),
@@ -48,7 +53,8 @@ class _DriverAllRidesTabState extends State<DriverAllRidesTab> {
                       Container(
                           width: 18,
                           height: 2,
-                          color: sel ? AppColors.accent : Colors.transparent),
+                          color:
+                              sel ? AppColors.accent : Colors.transparent),
                     ],
                   ),
                 );
@@ -57,29 +63,16 @@ class _DriverAllRidesTabState extends State<DriverAllRidesTab> {
           ),
           Container(height: 1, color: AppColors.line),
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: DataStore.allRides(),
-              builder: (context, snap) {
-                if (!snap.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                var rides = snap.data!;
-                if (filter != 'All') {
-                  rides =
-                      rides.where((r) => r['status'] == filter).toList();
-                }
-                if (rides.isEmpty) {
-                  return Center(
-                      child: Text('No $filter rides', style: AppText.muted));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                  itemCount: rides.length,
-                  itemBuilder: (_, i) =>
-                      RideCard(ride: rides[i], showUser: true),
-                );
-              },
-            ),
+            child: rides.isEmpty
+                ? Center(
+                    child: Text('No $filter rides',
+                        style: AppText.muted))
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    itemCount: rides.length,
+                    itemBuilder: (_, i) =>
+                        RideCard(ride: rides[i], showUser: true),
+                  ),
           ),
         ],
       ),

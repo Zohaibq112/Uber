@@ -29,13 +29,13 @@ class _BookRideTabState extends State<BookRideTab> {
     return 100 + rate * dist;
   }
 
-  Future<void> confirmBooking() async {
+  void confirmBooking() {
     if (pickupC.text.trim().isEmpty || dropC.text.trim().isEmpty) {
       showSnack(context, 'Add a pickup and drop-off first', error: true);
       return;
     }
     final fare = estimateFare();
-    await DataStore.bookRide({
+    DataStore.bookRide({
       'userId': widget.user['id'],
       'pickup': pickupC.text.trim(),
       'dropoff': dropC.text.trim(),
@@ -44,7 +44,6 @@ class _BookRideTabState extends State<BookRideTab> {
       'status': 'Pending',
       'createdAt': DateTime.now().toString().substring(0, 16),
     });
-    if (!mounted) return;
     pickupC.clear();
     dropC.clear();
     setState(() {});

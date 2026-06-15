@@ -1,323 +1,236 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart' as p;
-
 /// ============================================================
-///  DataStore — now backed by a real SQLite database (sqflite)
-///  with SHA-256 password hashing. Same method names as before,
-///  but every method is async (returns a Future) because SQLite
-///  is asynchronous.
+///  In-memory data store (pure Dart — no plugins, runs anywhere).
+///  Method names mirror a real database layer. Swap this class
+///  for SQLite/Firebase later without touching screen code.
 ///
-///  Tables:  users(... role, online)   rides(...)   notifications(...)
+///  Roles:  'admin'  'user' (rider)  'driver'
 /// ============================================================
 class DataStore {
-  static Database? _db;
+  static final List<Map<String, dynamic>> _users = [];
+  static final List<Map<String, dynamic>> _rides = [];
+  static final List<Map<String, dynamic>> _notifications = [];
+  static int _userId = 1;
+  static int _rideId = 1;
+  static int _notifId = 1;
 
-  static Future<Database> get _database async {
-    _db ??= await _open();
-    return _db!;
-  }
-
-  static Future<Database> _open() async {
-    final path = p.join(await getDatabasesPath(), 'ridenow.db');
-    return openDatabase(
-      path,
-      version: 2, // bump this number any time the tables change
-      onCreate: _create,
-      onUpgrade: (db, oldV, newV) async {
-        // If the schema changed, drop the old tables and rebuild fresh.
-        await db.execute('DROP TABLE IF EXISTS users');
-        await db.execute('DROP TABLE IF EXISTS rides');
-        await db.execute('DROP TABLE IF EXISTS notifications');
-        await _create(db, newV);
+  /// Seed default accounts + demo data (runs once).
+  static void seed() {
+    if (_users.isNotEmpty) return;
+    _users.addAll([
+      {
+        'id': _userId++,
+        'name': 'Admin',
+        'email': 'admin@ridenow.com',
+        'phone': '0000000000',
+        'password': 'admin123',
+        'role': 'admin',
       },
-    );
+      {
+        'id': _userId++,
+        'name': 'Ayesha Khan',
+        'email': 'ayesha@gmail.com',
+        'phone': '03001234567',
+        'password': '123456',
+        'role': 'user',
+      },
+      {
+        'id': _userId++,
+        'name': 'Bilal Ahmed',
+        'email': 'bilal@gmail.com',
+        'phone': '03007654321',
+        'password': '123456',
+        'role': 'user',
+      },
+      {
+        'id': _userId++,
+        'name': 'Imran Driver',
+        'email': 'driver@ridenow.com',
+        'phone': '03111222333',
+        'password': 'driver123',
+        'role': 'driver',
+        'vehicle': 'Suzuki Cultus — LEB 4521',
+        'online': true,
+      },
+    ]);
+    _rides.addAll([
+      {
+        'id': _rideId++,
+        'userId': 2,
+        'pickup': 'Saddar, Rawalpindi',
+        'dropoff': 'F-7 Markaz, Islamabad',
+        'vehicle': 'RideNow Go',
+        'fare': 540.0,
+        'status': 'Completed',
+        'createdAt': '2026-06-10 14:20',
+        'driverId': 4,
+        'driverName': 'Imran Driver',
+      },
+      {
+        'id': _rideId++,
+        'userId': 3,
+        'pickup': 'Wah Cantt',
+        'dropoff': 'Taxila',
+        'vehicle': 'RideNow Bike',
+        'fare': 180.0,
+        'status': 'Pending',
+        'createdAt': '2026-06-12 09:05',
+      },
+    ]);
   }
-
-  static Future<void> _create(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        email TEXT UNIQUE,
-        phone TEXT,
-        password TEXT,
-        role TEXT,
-        vehicle TEXT,
-        online INTEGER DEFAULT 1
-      )
-    ''');
-    await db.execute('''
-      CREATE TABLE rides(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER,
-        pickup TEXT,
-        dropoff TEXT,
-        vehicle TEXT,
-        fare REAL,
-        status TEXT,
-        createdAt TEXT,
-        driverId INTEGER,
-        driverName TEXT
-      )
-    ''');
-    await db.execute('''
-      CREATE TABLE notifications(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        driverId INTEGER,
-        rideId INTEGER,
-        text TEXT,
-        time TEXT,
-        read INTEGER DEFAULT 0
-      )
-    ''');
-    // Seed accounts + demo data (passwords hashed).
-    await db.insert('users', {
-      'name': 'Admin',
-      'email': 'admin@ridenow.com',
-      'phone': '0000000000',
-      'password': _hash('admin123'),
-      'role': 'admin',
-    });
-    await db.insert('users', {
-      'name': 'Ayesha Khan',
-      'email': 'ayesha@gmail.com',
-      'phone': '03001234567',
-      'password': _hash('123456'),
-      'role': 'user',
-    });
-    await db.insert('users', {
-      'name': 'Imran Driver',
-      'email': 'driver@ridenow.com',
-      'phone': '03111222333',
-      'password': _hash('driver123'),
-      'role': 'driver',
-      'vehicle': 'Suzuki Cultus — LEB 4521',
-      'online': 1,
-    });
-    await db.insert('rides', {
-      'userId': 2,
-      'pickup': 'Saddar, Rawalpindi',
-      'dropoff': 'F-7 Markaz, Islamabad',
-      'vehicle': 'RideNow Go',
-      'fare': 540.0,
-      'status': 'Pending',
-      'createdAt': '2026-06-12 09:05',
-      'driverId': null,
-      'driverName': null,
-    });
-  }
-
-  // ---------- PASSWORD HASHING ----------
-  static String _hash(String password) =>
-      sha256.convert(utf8.encode(password)).toString();
-
-  // ---------- kept for compatibility (seeding is automatic) ----------
-  static void seed() {}
 
   // ---------- AUTH ----------
-  static Future<String?> registerUser(Map<String, dynamic> user) async {
-    final db = await _database;
-    final exists =
-        await db.query('users', where: 'email = ?', whereArgs: [user['email']]);
-    if (exists.isNotEmpty) return 'Email already registered';
-    await db.insert('users', {
-      'name': user['name'],
-      'email': user['email'],
-      'phone': user['phone'],
-      'password': _hash(user['password']),
-      'role': 'user',
-    });
-    return null; // success
+  static String? registerUser(Map<String, dynamic> user) {
+    if (_users.any((u) => u['email'] == user['email'])) {
+      return 'Email already registered';
+    }
+    _users.add({'id': _userId++, 'role': 'user', ...user});
+    return null;
   }
 
-  static Future<Map<String, dynamic>?> login(
-      String email, String pass) async {
-    final db = await _database;
-    final rows = await db.query('users',
-        where: 'email = ? AND password = ?',
-        whereArgs: [email, _hash(pass)]);
-    return rows.isNotEmpty ? Map<String, dynamic>.from(rows.first) : null;
+  static Map<String, dynamic>? login(String email, String pass) {
+    for (final u in _users) {
+      if (u['email'] == email && u['password'] == pass) return u;
+    }
+    return null;
   }
 
-  // ---------- RIDERS ----------
-  static Future<List<Map<String, dynamic>>> getAllUsers() async {
-    final db = await _database;
-    final _r = await db.query('users', where: "role = 'user'", orderBy: 'id DESC');
-    return _r.map((e) => Map<String, dynamic>.from(e)).toList();
+  // ---------- RIDERS (users) ----------
+  static List<Map<String, dynamic>> getAllUsers() =>
+      _users.where((u) => u['role'] == 'user').toList().reversed.toList();
+
+  static void updateUser(int id, Map<String, dynamic> data) {
+    _users.firstWhere((e) => e['id'] == id).addAll(data);
   }
 
-  static Future<void> updateUser(int id, Map<String, dynamic> data) async {
-    final db = await _database;
-    await db.update('users', data, where: 'id = ?', whereArgs: [id]);
-  }
-
-  static Future<void> deleteUser(int id) async {
-    final db = await _database;
-    await db.delete('rides', where: 'userId = ?', whereArgs: [id]);
-    await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  static void deleteUser(int id) {
+    _users.removeWhere((u) => u['id'] == id);
+    _rides.removeWhere((r) => r['userId'] == id);
   }
 
   // ---------- DRIVERS ----------
-  static Future<String?> addDriver(Map<String, dynamic> driver) async {
-    final db = await _database;
-    final exists = await db
-        .query('users', where: 'email = ?', whereArgs: [driver['email']]);
-    if (exists.isNotEmpty) return 'Email already registered';
-    await db.insert('users', {
-      'name': driver['name'],
-      'email': driver['email'],
-      'phone': driver['phone'],
-      'vehicle': driver['vehicle'],
-      'password': _hash(driver['password']),
+  static String? addDriver(Map<String, dynamic> driver) {
+    if (_users.any((u) => u['email'] == driver['email'])) {
+      return 'Email already registered';
+    }
+    _users.add({
+      'id': _userId++,
       'role': 'driver',
-      'online': 1,
+      'online': true,
+      ...driver,
     });
     return null;
   }
 
-  static Future<List<Map<String, dynamic>>> getAllDrivers() async {
-    final db = await _database;
-    final _r = await db.query('users', where: "role = 'driver'", orderBy: 'id DESC');
-    return _r.map((e) => Map<String, dynamic>.from(e)).toList();
+  static List<Map<String, dynamic>> getAllDrivers() =>
+      _users.where((u) => u['role'] == 'driver').toList().reversed.toList();
+
+  static void deleteDriver(int id) {
+    _users.removeWhere((u) => u['id'] == id);
+    // Unassign any rides this driver had taken.
+    for (final r in _rides) {
+      if (r['driverId'] == id) {
+        r['driverId'] = null;
+        r['driverName'] = null;
+        if (r['status'] == 'Accepted') r['status'] = 'Pending';
+      }
+    }
   }
 
-  static Future<void> deleteDriver(int id) async {
-    final db = await _database;
-    // Return this driver's rides to the pool.
-    await db.update('rides', {'driverId': null, 'driverName': null},
-        where: 'driverId = ?', whereArgs: [id]);
-    await db.update('rides', {'status': 'Pending'},
-        where: 'driverId IS NULL AND status = ?', whereArgs: ['Accepted']);
-    await db.delete('users', where: 'id = ?', whereArgs: [id]);
-  }
-
-  static Future<void> setDriverOnline(int id, bool online) async {
-    final db = await _database;
-    await db.update('users', {'online': online ? 1 : 0},
-        where: 'id = ?', whereArgs: [id]);
+  static void setDriverOnline(int id, bool online) {
+    _users.firstWhere((u) => u['id'] == id)['online'] = online;
   }
 
   // ---------- RIDES ----------
-  static Future<void> bookRide(Map<String, dynamic> ride) async {
-    final db = await _database;
-    final id = await db.insert('rides', {
-      'userId': ride['userId'],
-      'pickup': ride['pickup'],
-      'dropoff': ride['dropoff'],
-      'vehicle': ride['vehicle'],
-      'fare': ride['fare'],
-      'status': 'Pending',
-      'createdAt': ride['createdAt'],
-      'driverId': null,
-      'driverName': null,
-    });
+  static void bookRide(Map<String, dynamic> ride) {
+    final newRide = {'id': _rideId++, 'driverId': null, ...ride};
+    _rides.add(newRide);
     // Notify every driver about the new request.
-    final drivers =
-        await db.query('users', where: "role = 'driver'");
-    for (final d in drivers) {
-      await db.insert('notifications', {
+    _notifyAllDrivers(
+      'New ride request: ${ride['pickup']} → ${ride['dropoff']}',
+      newRide['id'] as int,
+    );
+  }
+
+  static List<Map<String, dynamic>> userRides(int userId) =>
+      _rides.where((r) => r['userId'] == userId).toList().reversed.toList();
+
+  static List<Map<String, dynamic>> allRides() {
+    return _rides.reversed.map((r) {
+      final user = _users.firstWhere((u) => u['id'] == r['userId'],
+          orElse: () => {'name': 'Unknown'});
+      return {...r, 'userName': user['name']};
+    }).toList();
+  }
+
+  static void updateRideStatus(int id, String status) {
+    _rides.firstWhere((r) => r['id'] == id)['status'] = status;
+  }
+
+  static void deleteRide(int id) => _rides.removeWhere((r) => r['id'] == id);
+
+  // ---------- DRIVER RIDE FLOW ----------
+  /// Pending rides not yet taken by any driver (the "requests" feed).
+  static List<Map<String, dynamic>> availableRequests() {
+    return _rides.reversed
+        .where((r) => r['status'] == 'Pending' && r['driverId'] == null)
+        .map((r) {
+      final user = _users.firstWhere((u) => u['id'] == r['userId'],
+          orElse: () => {'name': 'Unknown'});
+      return {...r, 'userName': user['name']};
+    }).toList();
+  }
+
+  /// Rides assigned to a specific driver.
+  static List<Map<String, dynamic>> driverRides(int driverId) {
+    return _rides.reversed.where((r) => r['driverId'] == driverId).map((r) {
+      final user = _users.firstWhere((u) => u['id'] == r['userId'],
+          orElse: () => {'name': 'Unknown'});
+      return {...r, 'userName': user['name']};
+    }).toList();
+  }
+
+  static void acceptRide(int rideId, int driverId, String driverName) {
+    final r = _rides.firstWhere((e) => e['id'] == rideId);
+    r['driverId'] = driverId;
+    r['driverName'] = driverName;
+    r['status'] = 'Accepted';
+  }
+
+  // ---------- NOTIFICATIONS ----------
+  static void _notifyAllDrivers(String text, int rideId) {
+    for (final d in _users.where((u) => u['role'] == 'driver')) {
+      _notifications.add({
+        'id': _notifId++,
         'driverId': d['id'],
-        'rideId': id,
-        'text': 'New ride: ${ride['pickup']} → ${ride['dropoff']}',
+        'rideId': rideId,
+        'text': text,
         'time': DateTime.now().toString().substring(11, 16),
-        'read': 0,
+        'read': false,
       });
     }
   }
 
-  static Future<List<Map<String, dynamic>>> userRides(int userId) async {
-    final db = await _database;
-    final _r = await db.query('rides',
-        where: 'userId = ?', whereArgs: [userId], orderBy: 'id DESC');
-    return _r.map((e) => Map<String, dynamic>.from(e)).toList();
-  }
+  static List<Map<String, dynamic>> driverNotifications(int driverId) =>
+      _notifications
+          .where((n) => n['driverId'] == driverId)
+          .toList()
+          .reversed
+          .toList();
 
-  /// All rides, each joined with the rider's name (as userName).
-  static Future<List<Map<String, dynamic>>> allRides() async {
-    final db = await _database;
-    final r = await db.rawQuery('''
-      SELECT rides.*, users.name AS userName
-      FROM rides LEFT JOIN users ON rides.userId = users.id
-      ORDER BY rides.id DESC
-    ''');
-    return r.map((e) => Map<String, dynamic>.from(e)).toList();
-  }
+  static int unreadCount(int driverId) => _notifications
+      .where((n) => n['driverId'] == driverId && n['read'] == false)
+      .length;
 
-  static Future<void> updateRideStatus(int id, String status) async {
-    final db = await _database;
-    await db.update('rides', {'status': status},
-        where: 'id = ?', whereArgs: [id]);
-  }
-
-  static Future<void> deleteRide(int id) async {
-    final db = await _database;
-    await db.delete('rides', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // ---------- DRIVER RIDE FLOW ----------
-  static Future<List<Map<String, dynamic>>> availableRequests() async {
-    final db = await _database;
-    final r = await db.rawQuery('''
-      SELECT rides.*, users.name AS userName
-      FROM rides LEFT JOIN users ON rides.userId = users.id
-      WHERE rides.status = 'Pending' AND rides.driverId IS NULL
-      ORDER BY rides.id DESC
-    ''');
-    return r.map((e) => Map<String, dynamic>.from(e)).toList();
-  }
-
-  static Future<List<Map<String, dynamic>>> driverRides(int driverId) async {
-    final db = await _database;
-    final r = await db.rawQuery('''
-      SELECT rides.*, users.name AS userName
-      FROM rides LEFT JOIN users ON rides.userId = users.id
-      WHERE rides.driverId = ?
-      ORDER BY rides.id DESC
-    ''', [driverId]);
-    return r.map((e) => Map<String, dynamic>.from(e)).toList();
-  }
-
-  static Future<void> acceptRide(
-      int rideId, int driverId, String driverName) async {
-    final db = await _database;
-    await db.update(
-        'rides',
-        {'status': 'Accepted', 'driverId': driverId, 'driverName': driverName},
-        where: 'id = ?',
-        whereArgs: [rideId]);
-  }
-
-  // ---------- NOTIFICATIONS ----------
-  static Future<List<Map<String, dynamic>>> driverNotifications(
-      int driverId) async {
-    final db = await _database;
-    final _r = await db.query('notifications',
-        where: 'driverId = ?', whereArgs: [driverId], orderBy: 'id DESC');
-    return _r.map((e) => Map<String, dynamic>.from(e)).toList();
-  }
-
-  static Future<int> unreadCount(int driverId) async {
-    final db = await _database;
-    final rows = await db.query('notifications',
-        where: 'driverId = ? AND read = 0', whereArgs: [driverId]);
-    return rows.length;
-  }
-
-  static Future<void> markNotificationsRead(int driverId) async {
-    final db = await _database;
-    await db.update('notifications', {'read': 1},
-        where: 'driverId = ?', whereArgs: [driverId]);
+  static void markNotificationsRead(int driverId) {
+    for (final n in _notifications.where((n) => n['driverId'] == driverId)) {
+      n['read'] = true;
+    }
   }
 
   // ---------- STATS ----------
-  static Future<Map<String, dynamic>> driverStats(int driverId) async {
-    final db = await _database;
-    final mine =
-        await db.query('rides', where: 'driverId = ?', whereArgs: [driverId]);
-    final completed =
-        mine.where((r) => r['status'] == 'Completed').toList();
+  static Map<String, dynamic> driverStats(int driverId) {
+    final mine = _rides.where((r) => r['driverId'] == driverId);
+    final completed = mine.where((r) => r['status'] == 'Completed');
     final earnings = completed.fold<double>(
         0, (sum, r) => sum + (r['fare'] as num).toDouble());
     return {
@@ -327,21 +240,13 @@ class DataStore {
     };
   }
 
-  static Future<Map<String, int>> adminStats() async {
-    final db = await _database;
-    int n(List rows) => rows.length;
-    final users = await db.query('users', where: "role = 'user'");
-    final drivers = await db.query('users', where: "role = 'driver'");
-    final rides = await db.query('rides');
-    final pending =
-        await db.query('rides', where: "status = 'Pending'");
-    final done = await db.query('rides', where: "status = 'Completed'");
+  static Map<String, int> adminStats() {
     return {
-      'users': n(users),
-      'drivers': n(drivers),
-      'rides': n(rides),
-      'pending': n(pending),
-      'done': n(done),
+      'users': _users.where((u) => u['role'] == 'user').length,
+      'drivers': _users.where((u) => u['role'] == 'driver').length,
+      'rides': _rides.length,
+      'pending': _rides.where((r) => r['status'] == 'Pending').length,
+      'done': _rides.where((r) => r['status'] == 'Completed').length,
     };
   }
 }
