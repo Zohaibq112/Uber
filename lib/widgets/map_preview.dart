@@ -71,7 +71,7 @@ class MapPreview extends StatelessWidget {
                 ),
               ],
             ),
-            // Floating ETA chip
+        
             Positioned(
               left: 12,
               top: 12,
