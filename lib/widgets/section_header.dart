@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 
-/// Quiet large-title header (replaces gradient banners).
-/// eyebrow + big title, optional trailing widget. No box, just space.
 class PageHeader extends StatelessWidget {
   final String eyebrow;
   final String title;
