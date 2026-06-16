@@ -68,8 +68,6 @@ class GradientHeader extends StatelessWidget {
     );
   }
 }
-
-/// Round icon button used in headers (e.g. logout, bell).
 class CircleIconButton extends StatelessWidget {
   final IconData icon;
   final Color color;
